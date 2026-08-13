@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opspilot-agent.fullname" . }}
+  labels:
+    {{- include "opspilot-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "opspilot-agent.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "opspilot-agent.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ include "opspilot-agent.serviceAccountName" . }}
+      # No inbound ports — agent is outbound-only.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: opspilot-agent
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: OPSPILOT_API_URL
+              value: {{ .Values.apiUrl | quote }}
+            - name: OPSPILOT_AGENT_TOKEN
+              value: {{ .Values.installToken | quote }}
+            - name: OPSPILOT_ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: OPSPILOT_CLUSTER_NAME
+              value: {{ .Values.clusterName | quote }}
+            - name: OPSPILOT_DATA_DIR
+              value: {{ .Values.dataDir | quote }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.dataDir }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

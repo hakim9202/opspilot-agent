@@ -1,0 +1,31 @@
+image:
+  repository: opspilot-agent
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+apiUrl: "http://host.docker.internal:3000"
+installToken: "install_lab_opspilot_mvp"
+environment: "lab"
+clusterName: "opspilot-lab"
+dataDir: "/var/lib/opspilot"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+serviceAccount:
+  create: true
+  name: opspilot-agent
+
+rbac:
+  create: true
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
