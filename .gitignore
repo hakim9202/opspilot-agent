@@ -1,0 +1,17 @@
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+/vendor/
+.idea/
+.vscode/
+*.swp
+.DS_Store
+/data/
+/var/
+.env
+.env.*
+!/.env.example
+coverage.out
+opspilot-agent

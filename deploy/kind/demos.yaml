@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opspilot-demo
+---
+# Healthy baseline A — break manually with a bad image (ImagePullBackOff)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-healthy-a
+  namespace: opspilot-demo
+  labels:
+    app: demo-healthy-a
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-healthy-a
+  template:
+    metadata:
+      labels:
+        app: demo-healthy-a
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+# Healthy baseline B — break manually with tiny memory / hog (OOMKilled)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-healthy-b
+  namespace: opspilot-demo
+  labels:
+    app: demo-healthy-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-healthy-b
+  template:
+    metadata:
+      labels:
+        app: demo-healthy-b
+    spec:
+      containers:
+        - name: app
+          image: busybox:1.36
+          command: ["sh", "-c", "echo demo-healthy-b ok; sleep infinity"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+---
+# Healthy baseline C — break manually with exit 2 / crash (CrashLoopBackOff)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-healthy-c
+  namespace: opspilot-demo
+  labels:
+    app: demo-healthy-c
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-healthy-c
+  template:
+    metadata:
+      labels:
+        app: demo-healthy-c
+    spec:
+      containers:
+        - name: app
+          image: busybox:1.36
+          command: ["sh", "-c", "echo demo-healthy-c ok; sleep infinity"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 8Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
