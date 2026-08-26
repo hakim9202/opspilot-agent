@@ -2,19 +2,29 @@ stages:
   - build
 
 variables:
-  # Harbor image name (repo path is intt/ops-pilot; keep image name stable for Helm)
   IMAGE_NAME: opspilot-agent
-  # Cluster nodes are amd64; override local Apple Silicon default in Dockerfile
   DOCKER_BUILD_ARCH: amd64
+  # Defaults match intt-portal / inttdev Harbor (override in CI/CD settings if needed)
+  HARBOR_HOST: harbor-tkg.dev.kubix.tm.com.my
+  HARBOR_PROJECT: inttdev
+  HARBOR_URL: "https://harbor-tkg.dev.kubix.tm.com.my"
 
-# Build + push to harbor-tkg.dev.kubix.tm.com.my/inttdev/
-# Requires CI/CD variables (group or project): HARBOR_HOST, HARBOR_PROJECT,
-# HARBOR_URL, HARBOR_USERNAME, HARBOR_PASSWORD — same as intt-portal.
+# Build + push to harbor-tkg.dev.kubix.tm.com.my/inttdev/opspilot-agent
+# Still requires masked CI variables: HARBOR_USERNAME, HARBOR_PASSWORD
 build-harbor:
   stage: build
   environment:
     name: staging
   script:
+    - |
+      if [ -z "${HARBOR_HOST}" ] || [ -z "${HARBOR_PROJECT}" ]; then
+        echo "HARBOR_HOST and HARBOR_PROJECT must be set" >&2
+        exit 1
+      fi
+      if [ -z "${HARBOR_USERNAME}" ] || [ -z "${HARBOR_PASSWORD}" ]; then
+        echo "HARBOR_USERNAME and HARBOR_PASSWORD must be set in CI/CD variables" >&2
+        exit 1
+      fi
     - echo "Building $IMAGE_NAME for linux/$DOCKER_BUILD_ARCH"
     - docker build --build-arg TARGETARCH="$DOCKER_BUILD_ARCH" -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
     - docker tag "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:stg"
