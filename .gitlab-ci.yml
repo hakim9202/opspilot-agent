@@ -10,19 +10,21 @@ variables:
   HARBOR_URL: "https://harbor-tkg.dev.kubix.tm.com.my"
 
 # Build + push to harbor-tkg.dev.kubix.tm.com.my/inttdev/opspilot-agent
-# Still requires masked CI variables: HARBOR_USERNAME, HARBOR_PASSWORD
+# Group iNTT provides HARBOR_PASSWORD_DEV. Optional overrides: HARBOR_USERNAME, HARBOR_PASSWORD.
 build-harbor:
   stage: build
   environment:
     name: staging
   script:
     - |
+      export HARBOR_USER="${HARBOR_USERNAME:-robot\$inttdev+robot}"
+      export HARBOR_PASS="${HARBOR_PASSWORD:-$HARBOR_PASSWORD_DEV}"
       if [ -z "${HARBOR_HOST}" ] || [ -z "${HARBOR_PROJECT}" ]; then
         echo "HARBOR_HOST and HARBOR_PROJECT must be set" >&2
         exit 1
       fi
-      if [ -z "${HARBOR_USERNAME}" ] || [ -z "${HARBOR_PASSWORD}" ]; then
-        echo "HARBOR_USERNAME and HARBOR_PASSWORD must be set in CI/CD variables" >&2
+      if [ -z "${HARBOR_PASS}" ]; then
+        echo "Set HARBOR_PASSWORD_DEV (group) or HARBOR_PASSWORD (project)" >&2
         exit 1
       fi
     - echo "Building $IMAGE_NAME for linux/$DOCKER_BUILD_ARCH"
@@ -30,7 +32,7 @@ build-harbor:
     - docker tag "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:stg"
     - docker tag "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
     - echo "Pushing $HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:stg"
-    - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" "$HARBOR_URL"
+    - docker login -u "$HARBOR_USER" -p "$HARBOR_PASS" "$HARBOR_URL"
     - docker push "$HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:stg"
     - docker push "$HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
   tags:
