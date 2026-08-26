@@ -10,21 +10,21 @@ variables:
   HARBOR_URL: "https://harbor-tkg.dev.kubix.tm.com.my"
 
 # Build + push to harbor-tkg.dev.kubix.tm.com.my/inttdev/opspilot-agent
-# Group iNTT provides HARBOR_PASSWORD_DEV. Optional overrides: HARBOR_USERNAME, HARBOR_PASSWORD.
+# Group iNTT provides HARBOR_USERNAME_DEV + HARBOR_PASSWORD_DEV.
 build-harbor:
   stage: build
   environment:
     name: staging
   script:
     - |
-      export HARBOR_USER="${HARBOR_USERNAME:-robot\$inttdev+robot}"
+      export HARBOR_USER="${HARBOR_USERNAME:-$HARBOR_USERNAME_DEV}"
       export HARBOR_PASS="${HARBOR_PASSWORD:-$HARBOR_PASSWORD_DEV}"
       if [ -z "${HARBOR_HOST}" ] || [ -z "${HARBOR_PROJECT}" ]; then
         echo "HARBOR_HOST and HARBOR_PROJECT must be set" >&2
         exit 1
       fi
-      if [ -z "${HARBOR_PASS}" ]; then
-        echo "Set HARBOR_PASSWORD_DEV (group) or HARBOR_PASSWORD (project)" >&2
+      if [ -z "${HARBOR_USER}" ] || [ -z "${HARBOR_PASS}" ]; then
+        echo "Need HARBOR_USERNAME_DEV/HARBOR_PASSWORD_DEV (group) or HARBOR_USERNAME/HARBOR_PASSWORD" >&2
         exit 1
       fi
     - echo "Building $IMAGE_NAME for linux/$DOCKER_BUILD_ARCH"
