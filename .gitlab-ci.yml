@@ -1,0 +1,30 @@
+stages:
+  - build
+
+variables:
+  # Harbor image name (repo path is intt/ops-pilot; keep image name stable for Helm)
+  IMAGE_NAME: opspilot-agent
+  # Cluster nodes are amd64; override local Apple Silicon default in Dockerfile
+  DOCKER_BUILD_ARCH: amd64
+
+# Build + push to harbor-tkg.dev.kubix.tm.com.my/inttdev/
+# Requires CI/CD variables (group or project): HARBOR_HOST, HARBOR_PROJECT,
+# HARBOR_URL, HARBOR_USERNAME, HARBOR_PASSWORD — same as intt-portal.
+build-harbor:
+  stage: build
+  environment:
+    name: staging
+  script:
+    - echo "Building $IMAGE_NAME for linux/$DOCKER_BUILD_ARCH"
+    - docker build --build-arg TARGETARCH="$DOCKER_BUILD_ARCH" -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" .
+    - docker tag "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:stg"
+    - docker tag "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - echo "Pushing $HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:stg"
+    - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" "$HARBOR_URL"
+    - docker push "$HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:stg"
+    - docker push "$HARBOR_HOST/$HARBOR_PROJECT/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+  tags:
+    - DN2
+  only:
+    - main
+    - staging

@@ -145,7 +145,8 @@ func (c *Collector) inspectPod(pod *corev1.Pod) {
 		if cs.State.Waiting != nil {
 			waitingReason := cs.State.Waiting.Reason
 			switch waitingReason {
-			case "CrashLoopBackOff", "ImagePullBackOff", "ErrImagePull":
+			case "CrashLoopBackOff", "ImagePullBackOff", "ErrImagePull",
+				"CreateContainerConfigError", "CreateContainerError", "InvalidImageName":
 				c.emitCrashOrPullIncident(pod, cs, waitingReason)
 			}
 		}
