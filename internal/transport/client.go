@@ -44,10 +44,22 @@ type RegisterResponse struct {
 
 // HeartbeatRequest is the body for heartbeats.
 type HeartbeatRequest struct {
-	Status  string             `json:"status"`
-	Version string             `json:"version"`
-	Meta    map[string]string  `json:"meta,omitempty"`
-	Pods    []PodInventoryItem `json:"pods,omitempty"`
+	Status     string                   `json:"status"`
+	Version    string                   `json:"version"`
+	Meta       map[string]string        `json:"meta,omitempty"`
+	Pods       []PodInventoryItem       `json:"pods,omitempty"`
+	Containers []ContainerInventoryItem `json:"containers,omitempty"`
+}
+
+// ContainerInventoryItem is a compact Docker container row for the SaaS dashboard.
+type ContainerInventoryItem struct {
+	Name     string `json:"name"`
+	Status   string `json:"status"`
+	Health   string `json:"health,omitempty"`
+	Restarts int    `json:"restarts"`
+	Age      string `json:"age"`
+	Image    string `json:"image,omitempty"`
+	Service  string `json:"service,omitempty"`
 }
 
 // PodInventoryItem is a compact monitored-pod row for the SaaS dashboard.
@@ -62,7 +74,6 @@ type PodInventoryItem struct {
 	CPU    string `json:"cpu,omitempty"`
 	Memory string `json:"memory,omitempty"`
 }
-
 
 // AgentConfiguration is remote config returned on heartbeat / config fetch.
 type AgentConfiguration struct {
@@ -79,9 +90,9 @@ type PendingFixCommand struct {
 
 // HeartbeatResponse is returned by the SaaS heartbeat endpoint.
 type HeartbeatResponse struct {
-	OK              bool                 `json:"ok"`
-	Configuration   *AgentConfiguration  `json:"configuration,omitempty"`
-	PendingCommands []PendingFixCommand  `json:"pendingCommands,omitempty"`
+	OK              bool                `json:"ok"`
+	Configuration   *AgentConfiguration `json:"configuration,omitempty"`
+	PendingCommands []PendingFixCommand `json:"pendingCommands,omitempty"`
 }
 
 // FixCommandStatusRequest reports command outcome.
@@ -97,6 +108,9 @@ type Event struct {
 	Severity   string            `json:"severity"`
 	Title      string            `json:"title"`
 	Message    string            `json:"message"`
+	Source     string            `json:"source,omitempty"`
+	Service    string            `json:"service,omitempty"`
+	Host       string            `json:"host,omitempty"`
 	Namespace  string            `json:"namespace,omitempty"`
 	Resource   string            `json:"resource,omitempty"`
 	Reason     string            `json:"reason,omitempty"`

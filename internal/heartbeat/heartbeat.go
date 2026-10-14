@@ -11,35 +11,44 @@ import (
 	"github.com/opspilot/opspilot-agent/internal/transport"
 )
 
-// InventoryFunc returns the current monitored pod inventory.
-type InventoryFunc func(ctx context.Context) ([]transport.PodInventoryItem, error)
+// PodInventoryFunc returns the current monitored pod inventory.
+type PodInventoryFunc func(ctx context.Context) ([]transport.PodInventoryItem, error)
+
+// ContainerInventoryFunc returns the current monitored container inventory.
+type ContainerInventoryFunc func(ctx context.Context) ([]transport.ContainerInventoryItem, error)
 
 // Runner sends periodic heartbeats and applies remote configuration.
 type Runner struct {
-	client    *transport.Client
-	token     string
-	interval  time.Duration
-	logger    *slog.Logger
-	inventory InventoryFunc
-	applier   *remediation.Applier
+	client             *transport.Client
+	token              string
+	interval           time.Duration
+	logger             *slog.Logger
+	meta               map[string]string
+	podInventory       PodInventoryFunc
+	containerInventory ContainerInventoryFunc
+	applier            remediation.CommandApplier
 }
 
-// New creates a heartbeat runner. inventory/applier may be nil.
+// New creates a heartbeat runner. Inventory/applier may be nil.
 func New(
 	client *transport.Client,
 	token string,
 	interval time.Duration,
 	logger *slog.Logger,
-	inventory InventoryFunc,
-	applier *remediation.Applier,
+	meta map[string]string,
+	podInventory PodInventoryFunc,
+	containerInventory ContainerInventoryFunc,
+	applier remediation.CommandApplier,
 ) *Runner {
 	return &Runner{
-		client:    client,
-		token:     token,
-		interval:  interval,
-		logger:    logger,
-		inventory: inventory,
-		applier:   applier,
+		client:             client,
+		token:              token,
+		interval:           interval,
+		logger:             logger,
+		meta:               meta,
+		podInventory:       podInventory,
+		containerInventory: containerInventory,
+		applier:            applier,
 	}
 }
 
@@ -49,17 +58,24 @@ func (r *Runner) Run(ctx context.Context, stop <-chan struct{}) {
 		req := transport.HeartbeatRequest{
 			Status:  "online",
 			Version: registration.AgentVersion,
-			Meta: map[string]string{
-				"collector": "kubernetes",
-			},
+			Meta:    copyMeta(r.meta),
 		}
-		if r.inventory != nil {
-			pods, err := r.inventory(ctx)
+		if r.podInventory != nil {
+			pods, err := r.podInventory(ctx)
 			if err != nil {
 				r.logger.Warn("pod inventory failed", "error", err)
 			} else {
 				req.Pods = pods
 				req.Meta["podCount"] = itoa(len(pods))
+			}
+		}
+		if r.containerInventory != nil {
+			containers, err := r.containerInventory(ctx)
+			if err != nil {
+				r.logger.Warn("container inventory failed", "error", err)
+			} else {
+				req.Containers = containers
+				req.Meta["containerCount"] = itoa(len(containers))
 			}
 		}
 
@@ -76,7 +92,7 @@ func (r *Runner) Run(ctx context.Context, stop <-chan struct{}) {
 		if resp != nil && len(resp.PendingCommands) > 0 {
 			r.handleCommands(ctx, resp.PendingCommands)
 		}
-		r.logger.Debug("heartbeat ok", "pods", len(req.Pods))
+		r.logger.Debug("heartbeat ok", "pods", len(req.Pods), "containers", len(req.Containers))
 	}
 
 	send()
@@ -90,6 +106,14 @@ func (r *Runner) Run(ctx context.Context, stop <-chan struct{}) {
 			send()
 		}
 	}
+}
+
+func copyMeta(in map[string]string) map[string]string {
+	out := map[string]string{}
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }
 
 func (r *Runner) handleCommands(ctx context.Context, cmds []transport.PendingFixCommand) {

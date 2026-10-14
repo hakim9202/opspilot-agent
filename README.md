@@ -11,6 +11,13 @@ Lightweight Go agent that runs inside a customer Kubernetes cluster, collects ap
 - HTTPS batch transport with local retry queue
 - Read-only RBAC (no cluster mutations, no Secrets access)
 
+## Agent modes
+
+| Mode | Env | Where |
+|------|-----|--------|
+| Kubernetes (default) | `OPSPILOT_AGENT_MODE=kubernetes` | In-cluster Helm |
+| Docker host | `OPSPILOT_AGENT_MODE=docker-host` | VM with Docker — see [deploy/docker-host](deploy/docker-host/README.md) |
+
 ## Quick start (kind lab)
 
 ```bash

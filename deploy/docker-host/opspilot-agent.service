@@ -1,0 +1,23 @@
+[Unit]
+Description=OpsPilot Agent (Docker host)
+After=docker.service network-online.target
+Wants=docker.service network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/opspilot/agent.env
+ExecStart=/usr/local/bin/opspilot-agent
+Restart=always
+RestartSec=10
+User=root
+# Requires docker socket read access
+SupplementaryGroups=docker
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/opspilot
+
+[Install]
+WantedBy=multi-user.target

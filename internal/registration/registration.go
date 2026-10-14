@@ -23,15 +23,20 @@ func EnsureRegistered(ctx context.Context, cfg *config.Config, client *transport
 	}
 
 	hostname, _ := os.Hostname()
+	labels := map[string]string{
+		"collector": string(cfg.AgentMode),
+		"agentType": string(cfg.AgentMode),
+	}
+	if cfg.Service != "" {
+		labels["service"] = cfg.Service
+	}
 	resp, err := client.Register(ctx, transport.RegisterRequest{
 		InstallToken: cfg.AgentToken,
 		Hostname:     hostname,
 		Environment:  cfg.Environment,
 		ClusterName:  cfg.ClusterName,
 		Version:      AgentVersion,
-		Labels: map[string]string{
-			"collector": "kubernetes",
-		},
+		Labels:       labels,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("register: %w", err)
